@@ -635,10 +635,19 @@ module "cloud_run" {
         path   = "/webhook" # optional: URL path for the Cloud Run service
       }
     }
+    service_account_email = module.iam-service-account.email
   }
   deletion_protection = false
+  depends_on = [google_project_iam_member.trigger_sa_event_receiver]
 }
-# tftest modules=2 resources=4 fixtures=fixtures/gcs.tf inventory=service-eventarc-storage.yaml e2e
+
+resource "google_project_iam_member" "trigger_sa_event_receiver" {
+  member  = module.iam-service-account.iam_email
+  project = var.project_id
+  role    = "roles/eventarc.eventReceiver"
+}
+
+# tftest modules=2 resources=4 fixtures=fixtures/gcs.tf,fixtures/iam-service-account.tf inventory=service-eventarc-storage.yaml e2e
 ```
 
 ### Using custom service accounts for triggers
@@ -665,10 +674,10 @@ module "cloud_run" {
         service = "cloudresourcemanager.googleapis.com"
       }
     }
-    service_account_email = "cloud-run-trigger@my-project.iam.gserviceaccount.com"
+    service_account_email = module.iam-service-account.email
   }
 }
-# tftest modules=1 resources=2 inventory=service-eventarc-auditlogs-external-sa.yaml
+# tftest modules=1 resources=2 fixtures=fixtures/iam-service-account.tf inventory=service-eventarc-auditlogs-external-sa.yaml e2e
 ```
 
 Example using automatically created service account:
